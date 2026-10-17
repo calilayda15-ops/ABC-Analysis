@@ -22,11 +22,14 @@ The generated charts clearly summarize the outcome:
 - Annual Travel Distance Comparison: Compares the current travel distance (orange) with the optimized distance (blue) by class, clearly highlighting the massive distance savings achieved by relocating Class A products closer to the packing area.
   Libraries and Methods Used
 Libraries Used:
+
 Pandas (pandas): The core data analytics library used for reading Excel data, managing DataFrames, and performing table manipulations (grouping, cumulative sums).
 SQLite (sqlite3): Enables running an in-memory (:memory:) SQL database directly within Python to execute LEFT JOIN and GROUP BY queries without an external server setup.
 NumPy (numpy): Provides operational support for numerical arrays and mathematical calculations (such as bar chart positioning).
 Matplotlib & Seaborn (matplotlib.pyplot, seaborn): Utilized for professional-grade visualization of the ABC Pareto curve and the comparative bar charts for current vs. optimized travel distances.
+
 Methods Applied:
+
 ABC Analysis (Pareto Principle): Products were ranked in descending order based on their annual consumption value (Annual Order Quantity \times Unit Price). Thresholds of 80% and 95% were applied to classify items into Class A, Class B, and Class C.
 Warehouse Relocation Optimization: High-velocity Class A items were positioned in racks closest to the dispatch/packing area, while low-demand Class C items were placed in the furthest racks to minimize walking distances.
 Distance & Efficiency Simulation: Total annual round-trip walking distances were calculated in meters to quantify the exact distance saved and compute the overall percentage improvement.
