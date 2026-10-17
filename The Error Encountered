@@ -1,0 +1,5 @@
+The Error I Encountered:
+I encountered an IndentationError: unexpected indent starting at line 28 with df_products = pd.DataFrame(...). This happens when there are unexpected extra spaces or tabs at the beginning of the lines in Python.
+  
+How I Fixed It:
+The lines following the categories definition were accidentally pushed too far to the right with arbitrary indentation. I fixed it by removing the extra leading spaces/tabs from line 28 onward to align the code blocks correctly, restoring Python's syntax structure. After this correction, the code ran successfully without any errors.
