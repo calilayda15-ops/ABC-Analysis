@@ -1,0 +1,238 @@
+import sqlite3
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+# Set visual style for plots
+sns.set_theme(style="whitegrid")
+plt.rcParams["font.sans-serif"] = "DejaVu Sans"
+
+# ==========================================
+# 1. GENERATE DATA LOCALLY (SELF-CONTAINED)
+# ==========================================
+np.random.seed(42)
+num_products = 100
+product_ids = [f"PRD-{1001 + i}" for i in range(num_products)]
+categories = [
+    "Elektronik Aksesuar",
+    "Kırtasiye",
+    "Ev & Yaşam",
+    "Kişisel Bakım",
+    "Otomotiv Yedek Parça",
+    "Gıda & İçecek",
+    "Spor & Outdoor",
+]
+
+# Generate product master data
+df_products = pd.DataFrame({
+    "Urun_Kodu": product_ids,
+    "Urun_Adi": [f"Ürün {i+1}" for i in range(num_products)],
+    "Kategori": np.random.choice(categories, size=num_products),
+    "Yillik_Siparis_Miktari_Adet": np.round(
+        np.random.pareto(a=1.5, size=num_products) * 150 + 20
+    ).astype(int),
+    "Birim_Fiyat_TL": np.random.uniform(10, 1500, size=num_products).round(2),
+    "Mevcut_Depo_Konumu": np.random.choice(
+        [f"Raf-R{i:02d}" for i in range(1, 11)], size=num_products
+    ),
+    "Mevcut_Mesafe_Metre": [
+        int(r.split("-R")[1]) * 12 + np.random.randint(1, 10)
+        for r in np.random.choice(
+            [f"Raf-R{i:02d}" for i in range(1, 11)], size=num_products
+        )
+    ],
+})
+df_products["Mevcut_Yillik_Mesafe_Kat_Edilen_m"] = (
+    df_products["Yillik_Siparis_Miktari_Adet"]
+    * df_products["Mevcut_Mesafe_Metre"]
+    * 2
+)
+
+# Generate dummy order logs
+num_orders = 500
+df_orders = pd.DataFrame({
+    "Siparis_ID": [
+        f"ORD-{5000 + i}"
+        for i in np.random.randint(1, 151, size=num_orders)
+    ],
+    "Urun_Kodu": np.random.choice(product_ids, size=num_orders),
+    "Miktar": np.random.randint(1, 10, size=num_orders),
+    "Siparis_Tarihi": pd.date_range(
+        start="2026-01-01", periods=num_orders, freq="h"
+    ).strftime("%Y-%m-%d %H:%M"),
+})
+
+print(
+    f"Successfully generated {len(df_products)} products and {len(df_orders)} order logs internally."
+)
+
+# ==========================================
+# 2. SQLITE DATABASE INTEGRATION (:memory:)
+# ==========================================
+# Using an in-memory SQLite database for high performance and zero setup
+conn = sqlite3.connect(":memory:")
+
+df_products.to_sql("products", conn, if_exists="replace", index=False)
+df_orders.to_sql("order_logs", conn, if_exists="replace", index=False)
+
+query = """
+SELECT 
+    p.Urun_Kodu,
+    p.Urun_Adi,
+    p.Kategori,
+    p.Yillik_Siparis_Miktari_Adet,
+    p.Birim_Fiyat_TL,
+    p.Mevcut_Depo_Konumu,
+    p.Mevcut_Mesafe_Metre,
+    p.Mevcut_Yillik_Mesafe_Kat_Edilen_m,
+    COALESCE(SUM(o.Miktar), 0) AS Total_Ordered_Quantity
+FROM products p
+LEFT JOIN order_logs o ON p.Urun_Kodu = o.Urun_Kodu
+GROUP BY p.Urun_Kodu
+ORDER BY p.Yillik_Siparis_Miktari_Adet DESC;
+"""
+
+df_analysis = pd.read_sql(query, conn)
+conn.close()
+
+# ==========================================
+# 3. ABC ANALYSIS (PARETO PRINCIPLE)
+# ==========================================
+df_analysis["Annual_Consumption_Value"] = (
+    df_analysis["Yillik_Siparis_Miktari_Adet"] * df_analysis["Birim_Fiyat_TL"]
+)
+df_analysis = df_analysis.sort_values(
+    by="Annual_Consumption_Value", ascending=False
+).reset_index(drop=True)
+
+df_analysis["Cumulative_Value"] = df_analysis[
+    "Annual_Consumption_Value"
+].cumsum()
+total_consumption_value = df_analysis["Annual_Consumption_Value"].sum()
+df_analysis["Cumulative_Percentage"] = (
+    df_analysis["Cumulative_Value"] / total_consumption_value
+) * 100
+
+
+def assign_abc_class(cum_pct):
+    if cum_pct <= 80.0:
+        return "A"
+    elif cum_pct <= 95.0:
+        return "B"
+    else:
+        return "C"
+
+
+df_analysis["ABC_Class"] = df_analysis["Cumulative_Percentage"].apply(
+    assign_abc_class
+)
+
+abc_summary = (
+    df_analysis.groupby("ABC_Class")
+    .agg(
+        Product_Count=("Urun_Kodu", "count"),
+        Total_Value=("Annual_Consumption_Value", "sum"),
+    )
+    .reset_index()
+)
+print("\n--- ABC Analysis Summary ---")
+print(abc_summary)
+
+# ==========================================
+# 4. WAREHOUSE RELOCATION OPTIMIZATION MODEL
+# ==========================================
+
+
+def assign_optimized_rack(abc_class):
+    if abc_class == "A":
+        return "Raf-R02", 25
+    elif abc_class == "B":
+        return "Raf-R05", 60
+    else:
+        return "Raf-R09", 100
+
+
+df_analysis[["New_Depo_Konumu", "New_Mesafe_Metre"]] = pd.DataFrame(
+    df_analysis["ABC_Class"].apply(assign_optimized_rack).tolist(), index=df_analysis.index
+)
+
+df_analysis["New_Yillik_Mesafe_Kat_Edilen_m"] = (
+    df_analysis["Yillik_Siparis_Miktari_Adet"]
+    * df_analysis["New_Mesafe_Metre"]
+    * 2
+)
+
+total_current_distance = df_analysis["Mevcut_Yillik_Mesafe_Kat_Edilen_m"].sum()
+total_new_distance = df_analysis["New_Yillik_Mesafe_Kat_Edilen_m"].sum()
+distance_saved = total_current_distance - total_new_distance
+savings_percentage = (distance_saved / total_current_distance) * 100
+
+print(f"\n--- Warehouse Optimization Results ---")
+print(f"Total Current Annual Distance: {total_current_distance:,.0f} meters")
+print(f"Total Optimized Annual Distance: {total_new_distance:,.0f} meters")
+print(
+    f"Total Distance Saved: {distance_saved:,.0f} meters ({savings_percentage:.2f}% improvement)"
+)
+
+# ==========================================
+# 5. DATA VISUALIZATION
+# ==========================================
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Plot 1: Pareto Curve
+axes[0].plot(
+    range(len(df_analysis)),
+    df_analysis["Cumulative_Percentage"],
+    color="#1F4E78",
+    linewidth=2.5,
+    label="Cumulative Value %",
+)
+axes[0].axhline(80, color="red", linestyle="--", alpha=0.7, label="80% Threshold (A)")
+axes[0].axhline(95, color="orange", linestyle="--", alpha=0.7, label="95% Threshold (B)")
+axes[0].set_title(
+    "ABC Analysis Pareto Curve", fontsize=14, fontweight="bold", pad=15
+)
+axes[0].set_xlabel("Products (Ranked by Consumption Value)", fontsize=11)
+axes[0].set_ylabel("Cumulative Value (%)", fontsize=11)
+axes[0].legend(loc="lower right")
+
+# Plot 2: Distance Comparison Bar Chart
+distance_comparison = (
+    df_analysis.groupby("ABC_Class")[
+        ["Mevcut_Yillik_Mesafe_Kat_Edilen_m", "New_Yillik_Mesafe_Kat_Edilen_m"]
+    ]
+    .sum()
+    .reset_index()
+)
+x = np.arange(len(distance_comparison["ABC_Class"]))
+width = 0.35
+
+axes[1].bar(
+    x - width / 2,
+    distance_comparison["Mevcut_Yillik_Mesafe_Kat_Edilen_m"] / 1000,
+    width,
+    label="Current Distance (km)",
+    color="#D96B43",
+)
+axes[1].bar(
+    x + width / 2,
+    distance_comparison["New_Yillik_Mesafe_Kat_Edilen_m"] / 1000,
+    width,
+    label="Optimized Distance (km)",
+    color="#4C72B0",
+)
+
+axes[1].set_title(
+    "Annual Travel Distance Comparison (km)",
+    fontsize=14,
+    fontweight="bold",
+    pad=15,
+)
+axes[1].set_xticks(x)
+axes[1].set_xticklabels([f"Class {c}" for c in distance_comparison["ABC_Class"]])
+axes[1].set_ylabel("Total Distance (Kilometers)", fontsize=11)
+axes[1].legend()
+
+plt.tight_layout()
+plt.show()
