@@ -20,7 +20,9 @@ As a result of this optimization:
 The generated charts clearly summarize the outcome:
 - ABC Analysis Pareto Curve: Shows the cumulative value increase and the 80% (Class A) and 95% (Class B) thresholds.
 - Annual Travel Distance Comparison: Compares the current travel distance (orange) with the optimized distance (blue) by class, clearly highlighting the massive distance savings achieved by relocating Class A products closer to the packing area.
-  Libraries and Methods Used
+  
+Libraries and Methods Used
+
 Libraries Used:
 
 Pandas (pandas): The core data analytics library used for reading Excel data, managing DataFrames, and performing table manipulations (grouping, cumulative sums).
