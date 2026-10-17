@@ -1,0 +1,30 @@
+MATHEMATICAL FORMULATION & MANUAL CALCULATION METHODOLOGY
+
+1. Annual Consumption Value Calculation (ABC Analysis)
+To classify inventory items using the Pareto Principle, the annual consumption value (ACV) for each product is calculated by multiplying its annual order frequency by its unit price:
+ACV_i = Q_i * P_i
+Where:
+- Q_i = Annual order quantity / picking frequency of product i
+- P_i = Unit price of product i (in TL)
+
+Products are sorted in descending order of ACV, and cumulative percentage is computed as:
+Cumulative Percentage_n = ( Sum(ACV_1 to n) / Sum(ACV_1 to N) ) * 100
+
+Classification thresholds applied:
+- Class A: Cumulative percentage <= 80.0% (High value / High velocity)
+- Class B: 80.0% < Cumulative percentage <= 95.0% (Medium value)
+- Class C: Cumulative percentage > 95.0% (Low value / Low velocity)
+
+2. Annual Travel Distance Calculation (Round-Trip)
+In warehouse operations, picking distance is calculated as a round-trip (traveling from the dispatch area to the storage rack and back):
+Distance_annual = Q_i * D_i * 2
+Where:
+- Q_i = Annual order quantity (number of picks)
+- D_i = One-way distance from the dispatch/packing area to the assigned rack location (in meters)
+- 2 = Round-trip multiplier (to and from pick location)
+
+3. Warehouse Optimization Results (Numerical Breakdown)
+- Total Current Annual Travel Distance: 3,590,066 meters
+- Total Optimized Annual Travel Distance: 1,707,260 meters
+- Total Distance Saved (Delta Distance): 3,590,066 - 1,707,260 = 1,882,806 meters (~1,883 km)
+- Improvement Percentage (Distance Reduction): (1,882,806 / 3,590,066) * 100 = 52.44%
