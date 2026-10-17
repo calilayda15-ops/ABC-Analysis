@@ -1,0 +1,12 @@
+ Successfully generated 100 products and 500 order logs internally.
+
+--- ABC Analysis Summary ---
+  ABC_Class  Product_Count  Total_Value
+0         A             31  13086347.36
+1         B             30   2452088.27
+2         C             39    831474.38
+
+--- Warehouse Optimization Results ---
+Total Current Annual Distance: 3,590,066 meters
+Total Optimized Annual Distance: 1,707,260 meters
+Total Distance Saved: 1,882,806 meters (52.44% improvement)
